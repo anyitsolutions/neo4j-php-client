@@ -41,10 +41,6 @@ class Transaction
      */
     protected $eventDispatcher;
 
-    /**
-     * @param TransactionInterface $driverTransaction
-     * @param EventDispatcherInterface $eventDispatcher
-     */
     public function __construct(TransactionInterface $driverTransaction, EventDispatcherInterface $eventDispatcher)
     {
         $this->driverTransaction = $driverTransaction;
@@ -55,7 +51,6 @@ class Transaction
      * Push a statement to the queue, without actually sending it.
      *
      * @param string      $statement
-     * @param array       $parameters
      * @param string|null $tag
      */
     public function push($statement, array $parameters = [], $tag = null)
@@ -65,8 +60,7 @@ class Transaction
 
     /**
      * @param string      $statement
-     * @param array       $parameters
-     * @param null|string $tag
+     * @param string|null $tag
      *
      * @throws Neo4jException
      *
@@ -78,19 +72,20 @@ class Transaction
             $this->driverTransaction->begin();
         }
         $stmt = Statement::create($statement, $parameters, $tag);
-        $this->eventDispatcher->dispatch(Neo4jClientEvents::NEO4J_PRE_RUN, new PreRunEvent([$stmt]));
+        $this->eventDispatcher->dispatch(new PreRunEvent([$stmt]), Neo4jClientEvents::NEO4J_PRE_RUN);
         try {
             $result = $this->driverTransaction->run(Statement::create($statement, $parameters, $tag));
-            $this->eventDispatcher->dispatch(Neo4jClientEvents::NEO4J_POST_RUN, new PostRunEvent(ResultCollection::withResult($result)));
+            $this->eventDispatcher->dispatch(new PostRunEvent(ResultCollection::withResult($result)), Neo4jClientEvents::NEO4J_POST_RUN);
         } catch (MessageFailureException $e) {
             $exception = new Neo4jException($e->getMessage());
             $exception->setNeo4jStatusCode($e->getStatusCode());
 
             $event = new FailureEvent($exception);
-            $this->eventDispatcher->dispatch(Neo4jClientEvents::NEO4J_ON_FAILURE, $event);
+            $this->eventDispatcher->dispatch($event, Neo4jClientEvents::NEO4J_ON_FAILURE);
             if ($event->shouldThrowException()) {
                 throw $exception;
             }
+
             return null;
         }
 
@@ -99,8 +94,6 @@ class Transaction
 
     /**
      * Push a statements Stack to the queue, without actually sending it.
-     *
-     * @param \GraphAware\Neo4j\Client\StackInterface $stack
      */
     public function pushStack(StackInterface $stack)
     {
@@ -108,8 +101,6 @@ class Transaction
     }
 
     /**
-     * @param StackInterface $stack
-     *
      * @throws Neo4jException
      *
      * @return ResultCollection|Result[]|null
@@ -126,19 +117,20 @@ class Transaction
             $sts[] = $statement;
         }
 
-        $this->eventDispatcher->dispatch(Neo4jClientEvents::NEO4J_PRE_RUN, new PreRunEvent($stack->statements()));
+        $this->eventDispatcher->dispatch(new PreRunEvent($stack->statements()), Neo4jClientEvents::NEO4J_PRE_RUN);
         try {
             $results = $this->driverTransaction->runMultiple($sts);
-            $this->eventDispatcher->dispatch(Neo4jClientEvents::NEO4J_POST_RUN, new PostRunEvent($results));
+            $this->eventDispatcher->dispatch(new PostRunEvent($results), Neo4jClientEvents::NEO4J_POST_RUN);
         } catch (MessageFailureException $e) {
             $exception = new Neo4jException($e->getMessage());
             $exception->setNeo4jStatusCode($e->getStatusCode());
 
             $event = new FailureEvent($exception);
-            $this->eventDispatcher->dispatch(Neo4jClientEvents::NEO4J_ON_FAILURE, $event);
+            $this->eventDispatcher->dispatch($event, Neo4jClientEvents::NEO4J_ON_FAILURE);
             if ($event->shouldThrowException()) {
                 throw $exception;
             }
+
             return null;
         }
 

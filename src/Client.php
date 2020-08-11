@@ -48,9 +48,9 @@ class Client implements ClientInterface
      * Run a Cypher statement against the default database or the database specified.
      *
      * @param $query
-     * @param null|array  $parameters
-     * @param null|string $tag
-     * @param null|string $connectionAlias
+     * @param array|null  $parameters
+     * @param string|null $tag
+     * @param string|null $connectionAlias
      *
      * @throws \GraphAware\Neo4j\Client\Exception\Neo4jExceptionInterface
      *
@@ -61,14 +61,14 @@ class Client implements ClientInterface
         $connection = $this->connectionManager->getConnection($connectionAlias);
         $params = null !== $parameters ? $parameters : [];
         $statement = Statement::create($query, $params, $tag);
-        $this->eventDispatcher->dispatch(Neo4jClientEvents::NEO4J_PRE_RUN, new PreRunEvent([$statement]));
+        $this->eventDispatcher->dispatch(new PreRunEvent([$statement]), Neo4jClientEvents::NEO4J_PRE_RUN);
 
         try {
             $result = $connection->run($query, $parameters, $tag);
-            $this->eventDispatcher->dispatch(Neo4jClientEvents::NEO4J_POST_RUN, new PostRunEvent(ResultCollection::withResult($result)));
+            $this->eventDispatcher->dispatch(new PostRunEvent(ResultCollection::withResult($result)), Neo4jClientEvents::NEO4J_POST_RUN);
         } catch (Neo4jException $e) {
             $event = new FailureEvent($e);
-            $this->eventDispatcher->dispatch(Neo4jClientEvents::NEO4J_ON_FAILURE, $event);
+            $this->eventDispatcher->dispatch($event, Neo4jClientEvents::NEO4J_ON_FAILURE);
 
             if ($event->shouldThrowException()) {
                 throw $e;
@@ -82,8 +82,8 @@ class Client implements ClientInterface
 
     /**
      * @param string      $query
-     * @param null|array  $parameters
-     * @param null|string $tag
+     * @param array|null  $parameters
+     * @param string|null $tag
      *
      * @throws Neo4jException
      *
@@ -100,8 +100,8 @@ class Client implements ClientInterface
      * @deprecated since 4.0 - will be removed in 5.0 - use <code>$client->runWrite()</code> instead
      *
      * @param string      $query
-     * @param null|array  $parameters
-     * @param null|string $tag
+     * @param array|null  $parameters
+     * @param string|null $tag
      *
      * @throws Neo4jException
      *
@@ -124,8 +124,6 @@ class Client implements ClientInterface
     }
 
     /**
-     * @param StackInterface $stack
-     *
      * @throws Neo4jException
      *
      * @return ResultCollection|null
@@ -141,14 +139,14 @@ class Client implements ClientInterface
             $pipeline->push($statement->text(), $statement->parameters(), $statement->getTag());
         }
 
-        $this->eventDispatcher->dispatch(Neo4jClientEvents::NEO4J_PRE_RUN, new PreRunEvent($stack->statements()));
+        $this->eventDispatcher->dispatch(new PreRunEvent($stack->statements()), Neo4jClientEvents::NEO4J_PRE_RUN);
 
         try {
             $results = $pipeline->run();
-            $this->eventDispatcher->dispatch(Neo4jClientEvents::NEO4J_POST_RUN, new PostRunEvent($results));
+            $this->eventDispatcher->dispatch(new PostRunEvent($results), Neo4jClientEvents::NEO4J_POST_RUN);
         } catch (Neo4jException $e) {
             $event = new FailureEvent($e);
-            $this->eventDispatcher->dispatch(Neo4jClientEvents::NEO4J_ON_FAILURE, $event);
+            $this->eventDispatcher->dispatch($event, Neo4jClientEvents::NEO4J_ON_FAILURE);
 
             if ($event->shouldThrowException()) {
                 throw $e;
@@ -161,7 +159,7 @@ class Client implements ClientInterface
     }
 
     /**
-     * @param null|string $connectionAlias
+     * @param string|null $connectionAlias
      *
      * @return Transaction
      */
@@ -174,10 +172,10 @@ class Client implements ClientInterface
     }
 
     /**
-     * @param null|string $query
-     * @param null|array  $parameters
-     * @param null|string $tag
-     * @param null|string $connectionAlias
+     * @param string|null $query
+     * @param array|null  $parameters
+     * @param string|null $tag
+     * @param string|null $connectionAlias
      *
      * @return \GraphAware\Common\Driver\PipelineInterface
      */
@@ -207,9 +205,9 @@ class Client implements ClientInterface
      * @deprecated since 4.0 - will be removed in 5.0 - use <code>$client->run()</code> instead
      *
      * @param string      $query
-     * @param null|array  $parameters
-     * @param null|string $tag
-     * @param null|string $connectionAlias
+     * @param array|null  $parameters
+     * @param string|null $tag
+     * @param string|null $connectionAlias
      *
      * @return \GraphAware\Common\Result\Result
      */

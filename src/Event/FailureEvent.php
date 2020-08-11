@@ -26,9 +26,6 @@ class FailureEvent extends Event
      */
     protected $shouldThrowException = true;
 
-    /**
-     * @param Neo4jExceptionInterface $exception
-     */
     public function __construct(Neo4jExceptionInterface $exception)
     {
         $this->exception = $exception;
